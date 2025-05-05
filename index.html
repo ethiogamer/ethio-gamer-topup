@@ -82,19 +82,42 @@
     <button onclick="downloadHistory()">Download Transaction History</button>
     <button onclick="clearHistory()">Clear Transaction History</button>
 
-    <script>
-        // Retrieve the transaction history from localStorage (if it exists)
-        let transactionHistory = JSON.parse(localStorage.getItem("transactionHistory")) || [];
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 
-        // Load saved transaction history on page load
-        window.onload = function() {
-            const historyList = document.getElementById("historyList");
-            transactionHistory.forEach(item => {
-                const listItem = document.createElement("li");
-                listItem.textContent = `Bank: ${item.bank}, Transaction: ${item.txn}, Date: ${item.date}`;
-                historyList.prepend(listItem);
-            });
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBamCALWsdrWviiEkA26cP6dCJZqZ5NScY",
+            authDomain: "ethio-a1e95.firebaseapp.com",
+            projectId: "ethio-a1e95",
+            storageBucket: "ethio-a1e95.appspot.com",
+            messagingSenderId: "697514706181",
+            appId: "1:697514706181:web:03147af1833cc25719636c",
+            measurementId: "G-FDTWBNFP7F"
         };
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(app);
+
+        // Retrieve the transaction history from Firestore
+        let transactionHistory = [];
+
+        window.onload = function() {
+            loadHistoryFromFirestore();
+        };
+
+        // Load history from Firestore
+        function loadHistoryFromFirestore() {
+            db.collection("transactions").get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const item = doc.data();
+                    const listItem = document.createElement("li");
+                    listItem.textContent = `Bank: ${item.bank}, Transaction: ${item.txn}, Date: ${item.date}`;
+                    document.getElementById("historyList").prepend(listItem);
+                    transactionHistory.push(item);
+                });
+            });
+        }
 
         function loadReceipt() {
             const bank = document.getElementById("bankSelector").value;
@@ -148,18 +171,18 @@
                 historyList.prepend(listItem);
 
                 // Add to transaction history array
-                transactionHistory.push({ bank: bankName, txn: txn, date: currentTime });
+                const newTransaction = { bank: bankName, txn: txn, date: currentTime };
+                transactionHistory.push(newTransaction);
 
-                // Save to localStorage
-                localStorage.setItem("transactionHistory", JSON.stringify(transactionHistory));
+                // Save to Firestore
+                db.collection("transactions").add(newTransaction);
             }
 
             if (bank === "cbe") {
-    window.open(url, "_blank");
-} else {
-    document.getElementById("receiptFrame").src = url;
-}
-
+                window.open(url, "_blank");
+            } else {
+                document.getElementById("receiptFrame").src = url;
+            }
         }
 
         // Trigger on Enter key
